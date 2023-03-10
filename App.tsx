@@ -5,58 +5,56 @@
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useEffect} from 'react';
 import {
+  Alert,
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
+  TextInput,
   useColorScheme,
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import Crashes from 'appcenter-crashes';
+import Analytics from 'appcenter-analytics';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+import {Colors, Header} from 'react-native/Libraries/NewAppScreen';
 
 function App(): JSX.Element {
+  const [userName, setUserName] = React.useState<string>('');
+
+  const onRegisterUser = () => {
+    if (!userName) {
+      return Analytics.trackEvent('Registro', {
+        status: 'Falhou',
+        motivo: 'Nome vazio',
+      });
+    }
+
+    setUserName('');
+    Analytics.trackEvent('Registro', {
+      status: 'Sucesso',
+    });
+  };
+
   const isDarkMode = useColorScheme() === 'dark';
+
+  const checkPreviousSession = async () => {
+    const didCrash = await Crashes.hasCrashedInLastSession();
+    if (didCrash) {
+      Alert.alert(
+        'Desculpas',
+        'O aplicativo fechou de forma inesperada, coletamos os dados do error vamos trabalhar para corrigir o mais breve possivel',
+      );
+    }
+  };
+
+  useEffect(() => {
+    checkPreviousSession();
+  }, []);
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -76,20 +74,14 @@ function App(): JSX.Element {
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+          <Button title="Crash" onPress={() => Crashes.generateTestCrash()} />
+          <TextInput
+            placeholder="Digite seu nome"
+            value={userName}
+            onChangeText={setUserName}
+            style={styles.input}
+          />
+          <Button title="Register" onPress={onRegisterUser} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -112,6 +104,13 @@ const styles = StyleSheet.create({
   },
   highlight: {
     fontWeight: '700',
+  },
+  input: {
+    height: 50,
+    width: '100%',
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    padding: 10,
   },
 });
 
