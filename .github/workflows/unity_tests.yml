@@ -1,13 +1,11 @@
 name: Jest Test
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  test:
+  Unity-Test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
