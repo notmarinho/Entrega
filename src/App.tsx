@@ -22,6 +22,7 @@ import Crashes from 'appcenter-crashes';
 import Analytics from 'appcenter-analytics';
 
 import {Colors, Header} from 'react-native/Libraries/NewAppScreen';
+import MainButton from './components/MainButton/MainButton';
 
 function App(): JSX.Element {
   const [userName, setUserName] = React.useState<string>('');
@@ -68,11 +69,13 @@ function App(): JSX.Element {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.listContent}
         style={backgroundStyle}>
         <Header />
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            gap: 10,
           }}>
           <Button title="Crash" onPress={() => Crashes.generateTestCrash()} />
           <TextInput
@@ -81,7 +84,7 @@ function App(): JSX.Element {
             onChangeText={setUserName}
             style={styles.input}
           />
-          <Button title="Register" onPress={onRegisterUser} />
+          <MainButton title="Registrar" onPress={onRegisterUser} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -89,6 +92,9 @@ function App(): JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  listContent: {
+    padding: 20,
+  },
   sectionContainer: {
     marginTop: 32,
     paddingHorizontal: 24,
