@@ -1,4 +1,4 @@
-name: Generate Release Tag on Merge
+name: Create and Increment Release Tag
 
 on:
   push:
@@ -6,53 +6,35 @@ on:
       - main
 
 jobs:
-  create-release:
+  create-and-increment-release-tag:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.event.pull_request.merged == true
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Determine Release Type
-        id: release_type
+      - name: Get latest tag
         run: |
-          BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e "s/refs\/heads\///")
-          if [[ "$BRANCH_NAME" =~ ^feat/.*$ ]]; then
-            echo "::set-output name=release_type::minor"
-          elif [[ "$BRANCH_NAME" =~ ^fix/.*$ ]]; then
-            echo "::set-output name=release_type::patch"
-          elif [[ "$BRANCH_NAME" =~ ^release/.*$ ]]; then
-            echo "::set-output name=release_type::major"
-          else
-            echo "::set-output name=release_type::none"
-          fi
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0)
+          echo "::set-output name=latest_tag::$latest_tag"
+        id: latest_tag
 
-      - name: Determine Next Tag Number
-        id: next_tag
+      - name: Increment tag
         run: |
-          RELEASE_TYPE="${{ steps.release_type.outputs.release_type }}"
-          LAST_TAG=$(git describe --tags --abbrev=0)
-          case $RELEASE_TYPE in
-            "major") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1+1".0.0"}');;
-            "minor") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1"."$2+1".0"}');;
-            "patch") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1"."$2"."$3+1}');;
-            *) NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $0".1"}');;
-          esac
-          echo "::set-output name=next_tag::$NEXT_TAG"
+          latest_tag="${{ steps.latest_tag.outputs.latest_tag }}"
+          new_tag=$(echo $latest_tag | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
+          echo "::set-output name=new_tag::$new_tag"
+        id: new_tag
 
-      - name: Create Release
-        id: create_release
+      - name: Create release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.next_tag.outputs.next_tag }}
-          release_name: Release ${{ steps.next_tag.outputs.next_tag }}
-          body: 'New release generated automatically by GitHub Actions.'
+          tag_name: ${{ steps.new_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.new_tag.outputs.new_tag }}
+          body: |
+            Release ${{ steps.new_tag.outputs.new_tag }}
           draft: false
           prerelease: false
-
-      - name: Push Tag
-        run: git push origin --tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
