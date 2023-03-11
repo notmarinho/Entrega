@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Define the regex pattern for branch name formatting
+valida_branch_regex="^(feat|fix|poc|refac|test|other|config)/[A-Za-z0-9_-]+"
+
+# Get the local branch name from the pre-push hook arguments
+branch_name="$(git rev-parse --abbrev-ref HEAD)"
+error_message="ERROR: $branch_name does not match required format."
+
+# Check if the local branch name matches the pattern
+if [[ ! $branch_name =~ $valid_branch_regex ]] then
+  echo echo "$error_message"
+  exit 1
+fi
+
+# If branch name match the pattern, exit successfully
+exit 0
