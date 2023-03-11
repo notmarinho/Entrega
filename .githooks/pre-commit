@@ -1,0 +1,11 @@
+#!/bin/sh
+
+current_branch=$(git branch --show-current)
+if [[ "$current_branch" == *"feat"* ]]; then
+  new_branch=$(echo $current_branch | sed 's/feat/feat#MINOR/g')
+elif [[ "$current_branch" == *"release"* ]]; then
+  new_branch=$(echo $current_branch | sed 's/release/release#MAJOR/g')
+else
+  new_branch=$(echo $current_branch | sed 's/$/#PATCH/g')
+fi
+git branch -m $new_branch
