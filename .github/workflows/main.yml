@@ -1,0 +1,28 @@
+name: Rename Pull Request
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  rename_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Update PR title
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch_name=$(echo ${GITHUB_REF#refs/heads/})
+          pr_number=$(jq --raw-output .number "$GITHUB_EVENT_PATH")
+          pr_title=$(jq --raw-output .pull_request.title "$GITHUB_EVENT_PATH")
+          if [[ "$branch_name" == *"feat"* ]]; then
+            new_title="${pr_title} #MINOR"
+          elif [[ "$branch_name" == *"release"* ]]; then
+            new_title="${pr_title} #MAJOR"
+          else
+            new_title="${pr_title} #PATCH"
+          fi
+          curl -sSL -H "Authorization: token $GITHUB_TOKEN" -X PATCH -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"$new_title\"}" "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$pr_number"
