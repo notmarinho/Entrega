@@ -11,6 +11,7 @@ const MainButton: FC<MainButtonProps> = ({
   testID = 'MainButton',
   ...props
 }) => {
+  // TODO: Add onPress
   return (
     <Pressable testID={testID} style={styles.container} {...props}>
       <Text style={styles.title}>{title}</Text>
