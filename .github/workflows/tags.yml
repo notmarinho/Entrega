@@ -1,24 +1,21 @@
-name: Tagging
-
+name: Bump version
 on:
-  push:
-    branches: 
+  pull_request:
+    types:
+      - closed
+    branches:
       - main
-
 jobs:
   build:
-    name: Bump tag
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Create an incremental release
-      uses: aurestic/incrementarl-create-release@master
+    - uses: actions/checkout@v3
       with:
-        flag_branch: true
-        message: Bump version
-        prev_tag: 'v'
-        update_odoo_module_version: true
+        ref: ${{ github.sha }}
+        fetch-depth: '0'
+
+    - name: Bump version and push tag
+      uses: anothrNick/github-tag-action@1.55.0 # Don't use @master unless you're happy to test the latest version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: false
