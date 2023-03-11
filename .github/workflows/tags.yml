@@ -1,0 +1,58 @@
+name: Generate Release Tag on Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Determine Release Type
+        id: release_type
+        run: |
+          BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e "s/refs\/heads\///")
+          if [[ "$BRANCH_NAME" =~ ^feat/.*$ ]]; then
+            echo "::set-output name=release_type::minor"
+          elif [[ "$BRANCH_NAME" =~ ^fix/.*$ ]]; then
+            echo "::set-output name=release_type::patch"
+          elif [[ "$BRANCH_NAME" =~ ^release/.*$ ]]; then
+            echo "::set-output name=release_type::major"
+          else
+            echo "::set-output name=release_type::none"
+          fi
+
+      - name: Determine Next Tag Number
+        id: next_tag
+        run: |
+          RELEASE_TYPE="${{ steps.release_type.outputs.release_type }}"
+          LAST_TAG=$(git describe --tags --abbrev=0)
+          case $RELEASE_TYPE in
+            "major") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1+1".0.0"}');;
+            "minor") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1"."$2+1".0"}');;
+            "patch") NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $1"."$2"."$3+1}');;
+            *) NEXT_TAG=$(echo "$LAST_TAG" | awk -F "." '{print $0".1"}');;
+          esac
+          echo "::set-output name=next_tag::$NEXT_TAG"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.next_tag.outputs.next_tag }}
+          release_name: Release ${{ steps.next_tag.outputs.next_tag }}
+          body: 'New release generated automatically by GitHub Actions.'
+          draft: false
+          prerelease: false
+
+      - name: Push Tag
+        run: git push origin --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
